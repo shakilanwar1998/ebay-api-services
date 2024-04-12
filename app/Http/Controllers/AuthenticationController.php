@@ -7,6 +7,6 @@ use Illuminate\Http\Request;
 class AuthenticationController extends Controller
 {
     public function handleRedirect(Request $request){
-        dd($request->all());
+        dd($request->all(),'Test');
     }
 }
