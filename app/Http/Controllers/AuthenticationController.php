@@ -15,9 +15,10 @@ class AuthenticationController extends Controller
     }
     public function handleRedirect(Request $request){
 //        $authorizationCode = $request->code;
-        $authorizationCode = "v^1.1#i^1#r^1#f^0#p^3#I^3#t^Ul41XzExOkM3Qjc0ODZBREY3QTgwMDVEMUJCNEE5NDA3MkJEREQzXzJfMSNFXjEyODQ=";
+        $authorizationCode = "v^1.1#i^1#f^0#r^1#I^3#p^3#t^Ul41XzU6MzNGMjczOURBRjYxRUZGOUZFMTFEQUVGRkVERDcyRkFfMl8xI0VeMTI4NA==";
         if(!$authorizationCode) return response(['message' => 'No authorization code'],400);
 
-        $token = $this->service->getTokensByCode($authorizationCode);
+        $token = $this->service->getAccessToken($authorizationCode);
+        dd($token);
     }
 }

@@ -28,6 +28,7 @@ class ApiService
      */
     public function getAccessToken($refreshToken)
     {
+        $refreshToken = "v^1.1#i^1#p^3#r^1#I^3#f^0#t^Ul4xMF8wOjNBREE0RUI5OEIyMkFFMkU1NEZDOEIwMERDQUNBMThCXzBfMSNFXjEyODQ=";
         $client = new Client();
         $authUrl = $this->baseUrl.'identity/v1/oauth2/token';
         $response  = $client->post($authUrl,  [
@@ -67,7 +68,6 @@ class ApiService
         ]);
         $response = json_decode($response->getBody()->getContents());
 
-        dd($response);
         if($response->refresh_token)
         {
             return [
