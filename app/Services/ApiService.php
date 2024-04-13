@@ -26,7 +26,7 @@ class ApiService
     /**
      * @throws GuzzleException
      */
-    public function getAccessToken($refreshToken)
+    public function getAccessToken($refreshToken=null)
     {
         $refreshToken = "v^1.1#i^1#p^3#r^1#I^3#f^0#t^Ul4xMF8wOjNBREE0RUI5OEIyMkFFMkU1NEZDOEIwMERDQUNBMThCXzBfMSNFXjEyODQ=";
         $client = new Client();
@@ -68,16 +68,6 @@ class ApiService
         ]);
         $response = json_decode($response->getBody()->getContents());
 
-        if($response->refresh_token)
-        {
-            return [
-                'refresh_token' => $response->refresh_token,
-                'access_token' => $response->access_token,
-            ];
-        }
-        else
-        {
-            return false;
-        }
+        return $response->refresh_token ? ['refresh_token' => $response->refresh_token, 'access_token' => $response->access_token] : false;
     }
 }
