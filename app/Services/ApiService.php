@@ -51,6 +51,7 @@ class ApiService
      */
     public function getTokensByCode($code): bool|array
     {
+        dd($this);
         $client = new Client();
         $authUrl = $this->baseUrl.'identity/v1/oauth2/token';
         $response  = $client->post($authUrl,  [
