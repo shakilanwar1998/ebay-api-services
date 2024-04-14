@@ -88,13 +88,44 @@ class ApiService
         ] : false;
     }
 
-    public function listItems($data)
+    /**
+     * @throws GuzzleException
+     */
+    public function listItems($data): string
     {
-
+        return $this->makeRequest('AddFixedPriceItem', $data);
     }
 
-    public function reviseItem($data)
+    /**
+     * @throws GuzzleException
+     */
+    public function reviseItem($data): string
     {
+        return $this->makeRequest('ReviseFixedPriceItem', $data);
+    }
 
+    /**
+     * @throws GuzzleException
+     */
+    protected function makeRequest($callName, $data): string
+    {
+        $client = new Client();
+        $apiUrl = $this->baseUrl.'ws/api.dll';
+        $accessToken = app(CredentialService::class)->getAccessToken();
+
+        $response = $client->post($apiUrl, [
+            'headers' => [
+                'X-EBAY-API-COMPATIBILITY-LEVEL' => 967,
+                'X-EBAY-API-CALL-NAME' => $callName,
+                'X-EBAY-API-SITEID' => '0',
+                'X-EBAY-API-DETAIL-LEVEL' => '0',
+                'X-EBAY-API-IAF-TOKEN' => $accessToken,
+                'Content-Type' => 'text/xml',
+            ],
+            'body' => $data,
+            'verify' => false
+        ]);
+
+        return $response->getBody()->getContents();
     }
 }

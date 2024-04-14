@@ -68,15 +68,29 @@ class FeedService
     public function getShippingOptions(string $xml, mixed $value): string
     {
         $xml .= '<ShippingDetails>';
-        foreach ($value as $shippingOption) {
+        $xml .= '<ShippingType>Flat</ShippingType>';
+        $count = 1;
+        $shippingOption = $value[0];
+//        foreach ($value as $shippingOption) {
             $xml .= '<ShippingServiceOptions>';
-            $xml .= '<ShippingServicePriority>' . $shippingOption['ShippingServicePriority'] . '</ShippingServicePriority>';
-            $xml .= '<ShippingService>' . $shippingOption['ShippingService'] . '</ShippingService>';
+            $xml .= '<ShippingServicePriority>' . $count . '</ShippingServicePriority>';
+            $xml .= '<ShippingService>UPSGround</ShippingService>';
             $xml .= '<ShippingServiceCost>' . $shippingOption['ShippingServiceCost'] . '</ShippingServiceCost>';
+//            $xml .= '<ShipToLocation>' . $shippingOption['ShipToLocation'] . '</ShipToLocation>';
             $xml .= '</ShippingServiceOptions>';
-        }
+//        }
         $xml .= '</ShippingDetails>';
         return $xml;
+    }
+
+    public function getShippingPolicies()
+    {
+        return '<ReturnPolicy>
+	      <ReturnsAcceptedOption>ReturnsAccepted</ReturnsAcceptedOption>
+	      <RefundOption>MoneyBack</RefundOption>
+	      <ReturnsWithinOption>Days_30</ReturnsWithinOption>
+	      <ShippingCostPaidByOption>Buyer</ShippingCostPaidByOption>
+	    </ReturnPolicy>';
     }
 
     private function isEqualToLocal($fileContent): bool
@@ -97,6 +111,9 @@ class FeedService
     }
 
 
+    /**
+     * @throws GuzzleException
+     */
     public function syncFeedWithDB()
     {
 //        $data = file_get_contents($this->feedUrl);
@@ -118,7 +135,7 @@ class FeedService
             $sku = $productData['SKU'];
             $product = $products->where('sku', $sku)->first();
             if (!$product) {
-                app(ProductService::class)->create($productData);
+//                app(ProductService::class)->create($productData);
                 $newProducts[] = $productData;
             } else {
                 $changes = $this->findChanges($product, $productData);
@@ -128,16 +145,19 @@ class FeedService
                 }
             }
         }
-
+//        dd($newProducts);
         if (!empty($newProducts)) {
             $listingFeed = $this->generateListItemsFeed($newProducts);
+
         }
         if($revisingFeed){
-            app(ApiService::class)->reviseItem($revisingFeed);
+            $response = app(ApiService::class)->reviseItem($revisingFeed);
+            dd($response);
         }
 
         if($listingFeed){
-            app(ApiService::class)->reviseItem($listingFeed);
+            $response = app(ApiService::class)->listItems($listingFeed);
+            dd($response);
         }
 
         return response(['message' => 'Feed synchronized successfully']);
@@ -234,36 +254,72 @@ class FeedService
         $xml .= '<AddFixedPriceItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">';
         $xml .= '<ErrorLanguage>en_US</ErrorLanguage>';
         $xml .= '<WarningLevel>High</WarningLevel>';
-
+        $productDataArray = [$productDataArray[0]];
         foreach ($productDataArray as $productData) {
-            $categoryId = '111422';
+            $categoryId = '177';
             $conditionId = \App\Enums\Product::CONDITIONS[strtolower(str_replace(' ', '_', $productData['conditionInfo']))] ?? 1000;
             $shippingOptions = $productData['ShippingDetails'] ?? array();
             $stock = 1;
 
             $xml .= '<Item>';
             $xml .= '<Title>' . $productData['title'] . '</Title>';
-            $xml .= '<Description>' . $productData['description'] . '</Description>';
+//            $xml .= '<Description>' . $productData['description'] . '</Description>';
+            $xml .= '<Description>A Test Description</Description>';
             $xml .= '<PrimaryCategory>';
             $xml .= '<CategoryID>'.$categoryId.'</CategoryID>';
             $xml .= '</PrimaryCategory>';
             $xml .= '<StartPrice>' . $productData['price'] . '</StartPrice>';
             $xml .= '<Quantity>' . $stock . '</Quantity>'; // Quantity
             $xml .= '<ConditionID>'.$conditionId.'</ConditionID>';
-            $xml .= '<Country>NL</Country>';
+            $xml .= '<Country>US</Country>';
             $xml .= '<Currency>USD</Currency>';
+            $xml .= '<DispatchTimeMax>3</DispatchTimeMax>';
             $xml .= '<ListingDuration>GTC</ListingDuration>';
             $xml .= '<ListingType>FixedPriceItem</ListingType>';
+            $xml .= '<PostalCode>95125</PostalCode>';
 
             if(!empty($shippingOptions)){
                 $xml = $this->getShippingOptions($xml, $shippingOptions);
             }
+
+            $xml .= $this->getShippingPolicies();
 
             $xml .= '<PictureDetails>';
             foreach ($productData['pictureURL'] as $url) {
                 $xml .= '<PictureURL>' . $url . '</PictureURL>';
             }
             $xml .= '</PictureDetails>';
+
+
+            $xml .= '<ItemSpecifics>';
+
+            $xml.= '<NameValueList>';
+            $xml.= '<Name>Brand</Name>';
+            $xml.= '<Value>'.$productData['product_brand'].'</Value>';
+            $xml.= '</NameValueList>';
+
+            $xml.= '<NameValueList>';
+            $xml.= '<Name>Model</Name>';
+            $xml.= '<Value>'.$productData['product_model_name'].'</Value>';
+            $xml.= '</NameValueList>';
+
+            $xml.= '<NameValueList>';
+            $xml.= '<Name>Processor</Name>';
+            $xml.= '<Value>Not specified</Value>';
+            $xml.= '</NameValueList>';
+
+            $xml.= '<NameValueList>';
+            $xml.= '<Name>Processor</Name>';
+            $xml.= '<Value>Not specified</Value>';
+            $xml.= '</NameValueList>';
+
+            $xml.= '<NameValueList>';
+            $xml.= '<Name>Screen Size</Name>';
+            $xml.= '<Value>Not specified</Value>';
+            $xml.= '</NameValueList>';
+
+            $xml .= '</ItemSpecifics>';
+
             $xml .= '</Item>';
         }
 
