@@ -25,7 +25,7 @@ class AuthenticationController extends Controller
         if (!$authorizationCode) return response(['message' => 'No authorization code'], 400);
 
         $tokens = $this->service->getTokensByCode($authorizationCode);
-        dd($tokens);
+
         app(CredentialService::class)->renewTokens($tokens['refresh_token'], $tokens['access_token']);
         return response([
             'message' => 'Authorization success'

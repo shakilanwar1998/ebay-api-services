@@ -32,7 +32,7 @@ class ApiService
         $client = new Client();
         $authUrl = $this->baseUrl.'identity/v1/oauth2/token';
         $response  = $client->post($authUrl,  [
-            'form_params'=> [
+            'form_params' => [
                 "refresh_token" => $refreshToken,
                 "grant_type" => "refresh_token",
                 "scope" => $this->scopes,

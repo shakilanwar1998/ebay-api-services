@@ -10,3 +10,8 @@ Route::get('/',function(){
 
 Route::get('/auth',[\App\Http\Controllers\AuthenticationController::class,'handleRedirect']);
 
+
+Route::get('/test',function(){
+    return app(\App\Services\FeedService::class)->syncFeedWithDB();
+});
+
