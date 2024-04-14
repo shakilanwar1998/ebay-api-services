@@ -94,7 +94,7 @@ class FeedService
             $sku = $productData['SKU'];
             $product = $products->where('sku', $sku)->first();
             if (!$product) {
-                $product = app(ProductService::class)->create($productData);
+                app(ProductService::class)->create($productData);
                 $newProducts[] = $productData;
             } else {
                 $changes = $this->findChanges($product, $productData);
@@ -104,6 +104,7 @@ class FeedService
 
         if (!empty($newProducts)) {
             $listingFeed = $this->generateListItemsFeed($newProducts);
+            dd($listingFeed);
         }
 
         return response(['message' => 'Feed synchronized successfully']);
