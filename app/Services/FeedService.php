@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Product;
+use GuzzleHttp\Exception\GuzzleException;
 
 class FeedService
 {
@@ -98,13 +99,14 @@ class FeedService
                 $newProducts[] = $productData;
             } else {
                 $changes = $this->findChanges($product, $productData);
-                $revisingFeed = $this->generateReviseItemFeed($product->listing_id, $changes);
+                if(!empty($changes)){
+                    $revisingFeed = $this->generateReviseItemFeed($product->listing_id, $changes);
+                }
             }
         }
 
         if (!empty($newProducts)) {
             $listingFeed = $this->generateListItemsFeed($newProducts);
-            dd($listingFeed);
         }
 
         return response(['message' => 'Feed synchronized successfully']);
@@ -114,8 +116,32 @@ class FeedService
     {
         $changes = [];
         foreach ($productData as $key => $value) {
-            if ($product->$key !== $value) {
-                $changes[] = $key;
+            if ($key == 'product_brand' && $product->brand !== $value){
+                $changes['brand'] = $key;
+            }
+            elseif ($key == 'product_model_name' && $product->model !== $value){
+                $changes['model'] = $key;
+            }
+            elseif ($key == 'pictureURL' && $product->images !== $value){
+                $changes['images'] = $value;
+            }
+            elseif ($key == 'conditionInfo' && $product->condition !== $value){
+                $changes['condition'] = $value;
+            }
+            elseif ($key == 'ShippingDetails' && $product->shipping_details != $value){
+                $changes['shipping_details'] = $value;
+            }
+            elseif ($key == 'description' && $product->description !== $value){
+                $changes['description'] = $value;
+            }
+            elseif ($key == 'title' && $product->title !== $value){
+                $changes['title'] = $value;
+            }
+            elseif ($key == 'price' && $product->price != $value){
+                $changes['price'] = $value;
+            }
+            elseif ($key == 'stock' && $product->stock != $value){
+                $changes['stock'] = $value;
             }
         }
         return $changes;
@@ -127,27 +153,93 @@ class FeedService
         $xml .= '<ReviseItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">';
         $xml .= '<ItemID>' . $listingId . '</ItemID>';
         foreach ($changes as $key => $value) {
+            if($key == 'condition'){
+                $xml .= '<' . \App\Enums\Product::FIELD_MAPPING[$key] . '>' . \App\Enums\Product::CONDITIONS[strtolower(str_replace(' ','_',$value))] . '</' . \App\Enums\Product::FIELD_MAPPING[$key] . '>';
+            }
+            elseif($key == 'category_id'){
+                $xml .= '<PrimaryCategory>';
+                $xml .= '<CategoryID>'.$value.'</CategoryID>';
+                $xml .= '</PrimaryCategory>';
+            }
+            elseif($key == 'images'){
+                $xml .= '<PictureDetails>';
+                foreach ($value as $url) {
+                    $xml .= '<PictureURL>' . $url . '</PictureURL>';
+                }
+                $xml .= '</PictureDetails>';
+            }
+            elseif(in_array($key,['brand','model'])){
+                $xml .= '<PrimaryCategory>';
+                $xml .= '<CategoryID>'.$value.'</CategoryID>';
+                $xml .= '</PrimaryCategory>';
+            }
             $xml .= '<' . $key . '>' . $value . '</' . $key . '>';
+        }
+        if($changes['brand'] || $changes['model']){
+            $xml .= '<ItemSpecifics>';
+			<Name>Brand</Name>
+			<Value>Apple</Value>
+		</NameValueList>
         }
         $xml .= '</ReviseItemRequest>';
 
         return $xml;
     }
 
-    public function generateListItemsFeed($productData): string
+    public function generateListItemsFeed($productDataArray): string
     {
-        $xml = '<?xml version="1.0" encoding="UTF-8"?>';
+        $xml = '<?xml version="1.0" encoding="utf-8"?>';
         $xml .= '<AddFixedPriceItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">';
-        foreach ($productData as $productDatum) {
-            $xml .= '<Title>' . $productDatum['title'] . '</Title>';
-            $xml .= '<Description>' . $productDatum['description'] . '</Description>';
-            $xml .= '<StartPrice>' . $productDatum['price'] . '</StartPrice>';
+        $xml .= '<ErrorLanguage>en_US</ErrorLanguage>';
+        $xml .= '<WarningLevel>High</WarningLevel>';
+
+
+        foreach ($productDataArray as $productData) {
+            $categoryId = '235235';
+            $conditionId = \App\Enums\Product::CONDITIONS[strtolower(str_replace(' ', '_', $productData['conditionInfo']))] ?? 1000;
+            $shippingOptions = $productData['ShippingDetails'] ?? array();
+            $stock = 1;
+
+            $xml .= '<Item>';
+            $xml .= '<Title>' . $productData['title'] . '</Title>';
+            $xml .= '<Description>' . $productData['description'] . '</Description>';
+            $xml .= '<PrimaryCategory>';
+            $xml .= '<CategoryID>'.$categoryId.'</CategoryID>';
+            $xml .= '</PrimaryCategory>';
+            $xml .= '<StartPrice>' . $productData['price'] . '</StartPrice>';
+            $xml .= '<Quantity>' . $stock . '</Quantity>'; // Quantity
+            $xml .= '<ConditionID>'.$conditionId.'</ConditionID>';
+            $xml .= '<Country>NL</Country>';
+            $xml .= '<Currency>USD</Currency>';
+            $xml .= '<ListingDuration>GTC</ListingDuration>';
+            $xml .= '<ListingType>FixedPriceItem</ListingType>';
+
+            if(!empty($shippingOptions)){
+                $xml .= '<ShippingDetails>';
+                foreach ($shippingOptions as $shippingOption) {
+                    $xml .= '<ShippingServiceOptions>';
+                    $xml .= '<ShippingServicePriority>' . $shippingOption['ShippingServicePriority'] . '</ShippingServicePriority>';
+                    $xml .= '<ShippingService>' . $shippingOption['ShippingService'] . '</ShippingService>';
+                    $xml .= '<ShippingServiceCost>' . $shippingOption['ShippingServiceCost'] . '</ShippingServiceCost>';
+                    $xml .= '</ShippingServiceOptions>';
+                }
+                $xml .= '</ShippingDetails>';
+            }
+
+            $xml .= '<PictureDetails>';
+            foreach ($productData['pictureURL'] as $url) {
+                $xml .= '<PictureURL>' . $url . '</PictureURL>';
+            }
+            $xml .= '</PictureDetails>';
+            $xml .= '</Item>';
         }
 
         $xml .= '</AddFixedPriceItemRequest>';
 
         return $xml;
     }
+
+
 
 
 }

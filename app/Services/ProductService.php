@@ -11,15 +11,21 @@ class ProductService
         return Product::all();
     }
 
-    public function create($productData){
+    public function create($productData)
+    {
+
         return Product::updateOrCreate([
-            'sku' =>  $productData['SKU']
-        ],[
+            'sku' => $productData['SKU']
+        ], [
             'title' => $productData['title'],
             'description' => $productData['description'],
             'price' => $productData['price'],
             'brand' => $productData['product_brand'],
             'model' => $productData['product_model_name'],
+            'condition' => $productData['conditionInfo'],
+            'images' => $productData['pictureURL'],
+            'stock' => $productData['stock'] ?? 1,
+            'shipping_details' => $productData['ShippingDetails']
         ]);
     }
 }

@@ -24,4 +24,9 @@ class Product extends Model
         'condition',
         'shipping_details'
     ];
+
+    protected $casts = [
+        'images' => 'array',
+        'shipping_details' => 'array'
+    ];
 }
