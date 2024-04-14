@@ -17,6 +17,7 @@ class ApiService
 
     public function __construct()
     {
+        dd('Ok');
         $this->clientId = config('ebay.client_id');
         $this->clientSecret = config('ebay.client_secret');
         $this->baseUrl = config('ebay.baseUrl');
