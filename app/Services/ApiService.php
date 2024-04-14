@@ -67,7 +67,22 @@ class ApiService
             ]
         ]);
         $response = json_decode($response->getBody()->getContents());
+        dd($response);
+        return $response->refresh_token ? [
+            'refresh_token' => $response->refresh_token,
+            'access_token' => $response->access_token,
+            'rf_token_valid_till' => $response->expires_in,
+            'access_token_valid_till' => $response->expires_in
+        ] : false;
+    }
 
-        return $response->refresh_token ? ['refresh_token' => $response->refresh_token, 'access_token' => $response->access_token] : false;
+    public function listItems($data)
+    {
+
+    }
+
+    public function reviseItem($data)
+    {
+
     }
 }

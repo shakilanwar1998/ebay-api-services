@@ -12,6 +12,7 @@ class FeedService
     {
         $this->feedUrl = config('ebay.feed_url');
     }
+
     public function getFeedData($content): array
     {
         $xml = simplexml_load_string($content);
@@ -27,11 +28,11 @@ class FeedService
                         foreach ($child->children() as $subChild) {
                             if ($subChild->getName() === 'description') {
                                 $productArray[$subChild->getName()] = (string)$subChild->productDescription;
-                            } else if ($subChild->getName() === 'pictureURL'){
+                            } else if ($subChild->getName() === 'pictureURL') {
                                 $productArray[$subChild->getName()][] = (string)$subChild;
-                            } else if ($subChild->getName() === 'conditionInfo'){
+                            } else if ($subChild->getName() === 'conditionInfo') {
                                 $productArray[$subChild->getName()] = (string)$subChild->condition;
-                            } else{
+                            } else {
                                 $productArray[$subChild->getName()] = (string)$subChild;
                             }
                         }
@@ -88,41 +89,64 @@ class FeedService
 
         $products = app(ProductService::class)->getAll();
 
+        $newProducts = array();
         foreach ($feedData as $productData) {
             $sku = $productData['SKU'];
             $product = $products->where('sku', $sku)->first();
-
-            if ($product) {
-                // Product found, update its details
-                $product->update([
-                    'title' => $productData['title'],
-                    'description' => $productData['description'],
-                    'price' => $productData['price'],
-                    'brand' => $productData['product_brand'],
-                    'model' => $productData['product_model_name'],
-                    // Update other fields as needed
-                ]);
-
-                // Update shipping details
-                $product->shipping_details()->delete(); // Delete existing shipping details
-                foreach ($productData['ShippingDetails'] as $shippingDetail) {
-                    $product->shipping_details()->create($shippingDetail);
-                }
+            if (!$product) {
+                $product = app(ProductService::class)->create($productData);
+                $newProducts[] = $productData;
             } else {
-                // Product not found, create a new one
-                Product::create([
-                    'sku' => $sku,
-                    'title' => $productData['title'],
-                    'description' => $productData['description'],
-                    'price' => $productData['price'],
-                    'brand' => $productData['product_brand'],
-                    'model' => $productData['product_model_name'],
-                    // Set other fields as needed
-                ]);
+                $changes = $this->findChanges($product, $productData);
+                $revisingFeed = $this->generateReviseItemFeed($product->listing_id, $changes);
             }
+        }
+
+        if (!empty($newProducts)) {
+            $listingFeed = $this->generateListItemsFeed($newProducts);
         }
 
         return response(['message' => 'Feed synchronized successfully']);
     }
+
+    private function findChanges($product, $productData): array
+    {
+        $changes = [];
+        foreach ($productData as $key => $value) {
+            if ($product->$key !== $value) {
+                $changes[] = $key;
+            }
+        }
+        return $changes;
+    }
+
+    public function generateReviseItemFeed($listingId, $changes): string
+    {
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>';
+        $xml .= '<ReviseItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">';
+        $xml .= '<ItemID>' . $listingId . '</ItemID>';
+        foreach ($changes as $key => $value) {
+            $xml .= '<' . $key . '>' . $value . '</' . $key . '>';
+        }
+        $xml .= '</ReviseItemRequest>';
+
+        return $xml;
+    }
+
+    public function generateListItemsFeed($productData): string
+    {
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>';
+        $xml .= '<AddFixedPriceItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">';
+        foreach ($productData as $productDatum) {
+            $xml .= '<Title>' . $productDatum['title'] . '</Title>';
+            $xml .= '<Description>' . $productDatum['description'] . '</Description>';
+            $xml .= '<StartPrice>' . $productDatum['price'] . '</StartPrice>';
+        }
+
+        $xml .= '</AddFixedPriceItemRequest>';
+
+        return $xml;
+    }
+
 
 }
