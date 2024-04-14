@@ -60,6 +60,25 @@ class FeedService
         return $resultArray;
     }
 
+    /**
+     * @param string $xml
+     * @param mixed $value
+     * @return string
+     */
+    public function getShippingOptions(string $xml, mixed $value): string
+    {
+        $xml .= '<ShippingDetails>';
+        foreach ($value as $shippingOption) {
+            $xml .= '<ShippingServiceOptions>';
+            $xml .= '<ShippingServicePriority>' . $shippingOption['ShippingServicePriority'] . '</ShippingServicePriority>';
+            $xml .= '<ShippingService>' . $shippingOption['ShippingService'] . '</ShippingService>';
+            $xml .= '<ShippingServiceCost>' . $shippingOption['ShippingServiceCost'] . '</ShippingServiceCost>';
+            $xml .= '</ShippingServiceOptions>';
+        }
+        $xml .= '</ShippingDetails>';
+        return $xml;
+    }
+
     private function isEqualToLocal($fileContent): bool
     {
         $localFilePath = 'feed.xml';
@@ -168,19 +187,30 @@ class FeedService
                 }
                 $xml .= '</PictureDetails>';
             }
-            elseif(in_array($key,['brand','model'])){
-                $xml .= '<PrimaryCategory>';
-                $xml .= '<CategoryID>'.$value.'</CategoryID>';
-                $xml .= '</PrimaryCategory>';
+            elseif($key == 'shipping_details'){
+                $xml = $this->getShippingOptions($xml, $value);
             }
-            $xml .= '<' . $key . '>' . $value . '</' . $key . '>';
+            else{
+                $xml .= '<' . \App\Enums\Product::FIELD_MAPPING[$key] . '>' . $value . '</' . \App\Enums\Product::FIELD_MAPPING[$key] . '>';
+            }
         }
         if($changes['brand'] || $changes['model']){
             $xml .= '<ItemSpecifics>';
-			<Name>Brand</Name>
-			<Value>Apple</Value>
-		</NameValueList>
+            if($changes['brand']){
+                $xml.= '<NameValueList>';
+                $xml.= '<Name>Brand</Name>';
+                $xml.= '<Value>'.$changes['brand'].'</Value>';
+                $xml.= '</NameValueList>';
+            }
+            if($changes['model']){
+                $xml.= '<NameValueList>';
+                $xml.= '<Name>Model</Name>';
+                $xml.= '<Value>'.$changes['model'].'</Value>';
+                $xml.= '</NameValueList>';
+            }
+            $xml .= '</ItemSpecifics>';
         }
+
         $xml .= '</ReviseItemRequest>';
 
         return $xml;
@@ -215,15 +245,7 @@ class FeedService
             $xml .= '<ListingType>FixedPriceItem</ListingType>';
 
             if(!empty($shippingOptions)){
-                $xml .= '<ShippingDetails>';
-                foreach ($shippingOptions as $shippingOption) {
-                    $xml .= '<ShippingServiceOptions>';
-                    $xml .= '<ShippingServicePriority>' . $shippingOption['ShippingServicePriority'] . '</ShippingServicePriority>';
-                    $xml .= '<ShippingService>' . $shippingOption['ShippingService'] . '</ShippingService>';
-                    $xml .= '<ShippingServiceCost>' . $shippingOption['ShippingServiceCost'] . '</ShippingServiceCost>';
-                    $xml .= '</ShippingServiceOptions>';
-                }
-                $xml .= '</ShippingDetails>';
+                $xml = $this->getShippingOptions($xml, $shippingOptions);
             }
 
             $xml .= '<PictureDetails>';
