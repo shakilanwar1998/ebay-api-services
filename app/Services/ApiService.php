@@ -26,9 +26,8 @@ class ApiService
     /**
      * @throws GuzzleException
      */
-    public function getAccessToken($refreshToken=null)
+    public function getAccessToken($refreshToken): bool|array
     {
-        $refreshToken = "v^1.1#i^1#p^3#r^1#I^3#f^0#t^Ul4xMF8wOjNBREE0RUI5OEIyMkFFMkU1NEZDOEIwMERDQUNBMThCXzBfMSNFXjEyODQ=";
         $client = new Client();
         $authUrl = $this->baseUrl.'identity/v1/oauth2/token';
         $response  = $client->post($authUrl,  [
@@ -43,7 +42,15 @@ class ApiService
                 'Authorization' => 'Basic '.base64_encode("$this->clientId:$this->clientSecret"),
             ]
         ]);
-        return json_decode($response->getBody()->getContents())->access_token;
+        $response = json_decode($response->getBody()->getContents());
+
+        $accessExpiresAt = now();
+        $accessExpiresAt = $accessExpiresAt->addSeconds($response->expires_in);
+
+        return $response->access_token ? [
+            'access_token' => $response->access_token,
+            'access_token_valid_till' => $accessExpiresAt
+        ] : false;
     }
 
     /**
@@ -67,12 +74,17 @@ class ApiService
             ]
         ]);
         $response = json_decode($response->getBody()->getContents());
-        dd($response);
+
+        $rfExpiresAt = now();
+        $accessExpiresAt = now();
+        $rfExpiresAt = $rfExpiresAt->addSeconds($response->refresh_token_expires_in);
+        $accessExpiresAt = $accessExpiresAt->addSeconds($response->expires_in);
+
         return $response->refresh_token ? [
             'refresh_token' => $response->refresh_token,
             'access_token' => $response->access_token,
-            'rf_token_valid_till' => $response->expires_in,
-            'access_token_valid_till' => $response->expires_in
+            'rf_token_valid_till' => $rfExpiresAt,
+            'access_token_valid_till' => $accessExpiresAt
         ] : false;
     }
 

@@ -12,6 +12,8 @@ class Credential extends Model
     protected $fillable = [
         'refresh_token',
         'access_token',
-        'app_token'
+        'app_token',
+        'rf_token_valid_till',
+        'access_token_valid_till'
     ];
 }
