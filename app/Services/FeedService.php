@@ -110,6 +110,10 @@ class FeedService
         $products = app(ProductService::class)->getAll();
 
         $newProducts = array();
+
+        $listingFeed = null;
+        $revisingFeed = null;
+
         foreach ($feedData as $productData) {
             $sku = $productData['SKU'];
             $product = $products->where('sku', $sku)->first();
@@ -119,6 +123,7 @@ class FeedService
             } else {
                 $changes = $this->findChanges($product, $productData);
                 if(!empty($changes)){
+                    app(ProductService::class)->update($product->id,$changes);
                     $revisingFeed = $this->generateReviseItemFeed($product->listing_id, $changes);
                 }
             }
@@ -126,6 +131,13 @@ class FeedService
 
         if (!empty($newProducts)) {
             $listingFeed = $this->generateListItemsFeed($newProducts);
+        }
+        if($revisingFeed){
+            app(ApiService::class)->reviseItem($revisingFeed);
+        }
+
+        if($listingFeed){
+            app(ApiService::class)->reviseItem($listingFeed);
         }
 
         return response(['message' => 'Feed synchronized successfully']);
@@ -194,7 +206,7 @@ class FeedService
                 $xml .= '<' . \App\Enums\Product::FIELD_MAPPING[$key] . '>' . $value . '</' . \App\Enums\Product::FIELD_MAPPING[$key] . '>';
             }
         }
-        if($changes['brand'] || $changes['model']){
+        if(@$changes['brand'] || @$changes['model']){
             $xml .= '<ItemSpecifics>';
             if($changes['brand']){
                 $xml.= '<NameValueList>';
@@ -223,9 +235,8 @@ class FeedService
         $xml .= '<ErrorLanguage>en_US</ErrorLanguage>';
         $xml .= '<WarningLevel>High</WarningLevel>';
 
-
         foreach ($productDataArray as $productData) {
-            $categoryId = '235235';
+            $categoryId = '111422';
             $conditionId = \App\Enums\Product::CONDITIONS[strtolower(str_replace(' ', '_', $productData['conditionInfo']))] ?? 1000;
             $shippingOptions = $productData['ShippingDetails'] ?? array();
             $stock = 1;

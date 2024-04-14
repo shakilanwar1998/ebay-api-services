@@ -28,4 +28,11 @@ class ProductService
             'shipping_details' => $productData['ShippingDetails']
         ]);
     }
+
+    public function update($id,$data)
+    {
+        $product = Product::find($id);
+        $product->fill($data);
+        $product->save();
+    }
 }
