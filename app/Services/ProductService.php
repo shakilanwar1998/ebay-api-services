@@ -13,7 +13,7 @@ class ProductService
 
     public function create($productData){
         return Product::updateOrCreate([
-            'sku' =>  $productData['sku']
+            'sku' =>  $productData['SKU']
         ],[
             'title' => $productData['title'],
             'description' => $productData['description'],
