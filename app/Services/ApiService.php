@@ -17,7 +17,6 @@ class ApiService
 
     public function __construct()
     {
-        dd('Ok');
         $this->clientId = config('ebay.client_id');
         $this->clientSecret = config('ebay.client_secret');
         $this->baseUrl = config('ebay.baseUrl');
@@ -52,7 +51,6 @@ class ApiService
      */
     public function getTokensByCode($code): bool|array
     {
-        dd($this);
         $client = new Client();
         $authUrl = $this->baseUrl.'identity/v1/oauth2/token';
         $response  = $client->post($authUrl,  [
