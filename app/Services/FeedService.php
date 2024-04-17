@@ -100,12 +100,12 @@ class FeedService
      */
     public function syncFeedWithDB()
     {
-//        $data = file_get_contents($this->feedUrl);
+        $data = file_get_contents($this->feedUrl);
 //        $equal = $this->isEqualToLocal($data);
 //        if ($equal) {
 //            return response(['message' => 'No updates available']);
 //        }
-        $data = file_get_contents('feed.xml');
+//        $data = file_get_contents('feed.xml');
         $feedData = $this->getFeedData($data);
 
         $products = app(ProductService::class)->getAll();
