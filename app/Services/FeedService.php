@@ -74,7 +74,7 @@ class FeedService
 	      <ReturnsWithinOption>Days_30</ReturnsWithinOption>
 	      <ShippingCostPaidByOption>Buyer</ShippingCostPaidByOption>
 	    </ReturnPolicy>';
-        
+
         //	      <RefundOption>MoneyBack</RefundOption>
     }
 
@@ -173,8 +173,7 @@ class FeedService
         $xml = simplexml_load_string($xmlResponse);
         $xml->registerXPathNamespace('ns', 'urn:ebay:apis:eBLBaseComponents');
         $itemId = $xml->xpath('//ns:Errors/ns:ErrorParameters[@ParamID="1"]/ns:Value');
-        dd($xmlResponse,$itemId);
-        return (string) $itemId[0] ?? 0;
+        return $itemId[0] ?? 0;
     }
 
     private function findChanges($product, $productData): array
