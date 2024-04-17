@@ -60,7 +60,7 @@ class FeedService
             $xml .= '<ShippingServicePriority>' . $count . '</ShippingServicePriority>';
             $xml .= '<ShippingService>NL_StandardDelivery</ShippingService>';
             $xml .= '<ShippingServiceCost>' . $shippingOption['ShippingServiceCost'] . '</ShippingServiceCost>';
-//            $xml .= '<ShipToLocation>' . $shippingOption['ShipToLocation'] . '</ShipToLocation>';
+            $xml .= '<ShippingServiceAdditionalCost currencyID="EUR">0.00</ShippingServiceAdditionalCost>';
             $xml .= '</ShippingServiceOptions>';
 //        }
         $xml .= '</ShippingDetails>';
@@ -71,10 +71,11 @@ class FeedService
     {
         return '<ReturnPolicy>
 	      <ReturnsAcceptedOption>ReturnsAccepted</ReturnsAcceptedOption>
-	      <RefundOption>MoneyBack</RefundOption>
 	      <ReturnsWithinOption>Days_30</ReturnsWithinOption>
 	      <ShippingCostPaidByOption>Buyer</ShippingCostPaidByOption>
 	    </ReturnPolicy>';
+        
+        //	      <RefundOption>MoneyBack</RefundOption>
     }
 
     private function isEqualToLocal($fileContent): bool
@@ -224,7 +225,7 @@ class FeedService
             $xml .= '<ItemSpecifics>';
             if($changes['brand']){
                 $xml.= '<NameValueList>';
-                $xml.= '<Name>Brand</Name>';
+                $xml.= '<Name>Merk</Name>';
                 $xml.= '<Value>'.$changes['brand'].'</Value>';
                 $xml.= '</NameValueList>';
             }
@@ -287,7 +288,7 @@ class FeedService
         $xml .= '<ItemSpecifics>';
 
         $xml.= '<NameValueList>';
-        $xml.= '<Name>Brand</Name>';
+        $xml.= '<Name>Merk</Name>';
         $xml.= '<Value>'.$productData['brand'].'</Value>';
         $xml.= '</NameValueList>';
 
@@ -307,7 +308,7 @@ class FeedService
         $xml.= '</NameValueList>';
 
         $xml.= '<NameValueList>';
-        $xml.= '<Name>Screen Size</Name>';
+        $xml.= '<Name>Schermgrootte</Name>';
         $xml.= '<Value>Not specified</Value>';
         $xml.= '</NameValueList>';
 
