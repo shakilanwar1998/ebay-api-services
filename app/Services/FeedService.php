@@ -136,7 +136,22 @@ class FeedService
             }
         }
 
-        return response(['message' => 'Feed synchronized successfully','new_products' => $newProducts, 'updated_products' => $updatedProducts]);
+
+        if(empty($updatedProducts) && empty($newProducts)){
+            $allProducts = array();
+            foreach ($products as $product) {
+                $allProducts[] = 'https://sandbox.ebay.com/itm/'.$product->listing_id;
+            }
+            return response([
+                'message' => 'No updates available',
+                'all_products' => $allProducts
+            ]);
+        }
+        return response([
+            'message' => 'Feed synchronized successfully',
+            'new_products' => $newProducts,
+            'updated_products' => $updatedProducts
+        ]);
     }
 
     private function extractListingId($xmlResponse): string
