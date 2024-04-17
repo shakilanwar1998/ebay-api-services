@@ -168,9 +168,11 @@ class FeedService
 
     private function extractDuplicateListingId($xmlResponse): string
     {
+
         $xml = simplexml_load_string($xmlResponse);
         $xml->registerXPathNamespace('ns', 'urn:ebay:apis:eBLBaseComponents');
         $itemId = $xml->xpath('//ns:Errors/ns:ErrorParameters[@ParamID="1"]/ns:Value');
+        dd($xmlResponse,$itemId);
         return (string) $itemId[0] ?? 0;
     }
 
