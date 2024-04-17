@@ -58,7 +58,7 @@ class FeedService
 //        foreach ($value as $shippingOption) {
             $xml .= '<ShippingServiceOptions>';
             $xml .= '<ShippingServicePriority>' . $count . '</ShippingServicePriority>';
-            $xml .= '<ShippingService>UPSGround</ShippingService>';
+            $xml .= '<ShippingService>NL_StandardDelivery</ShippingService>';
             $xml .= '<ShippingServiceCost>' . $shippingOption['ShippingServiceCost'] . '</ShippingServiceCost>';
 //            $xml .= '<ShipToLocation>' . $shippingOption['ShipToLocation'] . '</ShipToLocation>';
             $xml .= '</ShippingServiceOptions>';
