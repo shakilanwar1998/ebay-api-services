@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Services\FeedService;
+use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Console\Command;
 
 class FeedSync extends Command
@@ -23,6 +24,7 @@ class FeedSync extends Command
 
     /**
      * Execute the console command.
+     * @throws GuzzleException
      */
     public function handle()
     {
