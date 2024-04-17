@@ -252,7 +252,7 @@ class FeedService
 
         $conditionId = \App\Enums\Product::CONDITIONS[strtolower(str_replace(' ', '_', $productData['condition']))] ?? 1000;
         $shippingOptions = $productData['shipping_details'] ?? array();
-        $stock = 1;
+        $stock = $productData['stock'];
 
         $xml .= '<Item>';
         $xml .= '<Title>' . $productData['title'] . '</Title>';
