@@ -21,40 +21,24 @@ class FeedService
         $resultArray = [];
 
         foreach ($xml->product as $product) {
-            $productArray = [];
+            $shippingOptions = (array)$product->ShippingDetails;
+            $postalCode = $shippingOptions['PostalCode'];
+            unset($shippingOptions['PostalCode']);
 
-            foreach ($product->children() as $child) {
-                if ($child->count() > 0) {
-                    if ($child->getName() === 'productInformation') {
-                        foreach ($child->children() as $subChild) {
-                            if ($subChild->getName() === 'description') {
-                                $productArray[$subChild->getName()] = (string)$subChild->productDescription;
-                            } else if ($subChild->getName() === 'pictureURL') {
-                                $productArray[$subChild->getName()][] = (string)$subChild;
-                            } else if ($subChild->getName() === 'conditionInfo') {
-                                $productArray[$subChild->getName()] = (string)$subChild->condition;
-                            } else {
-                                $productArray[$subChild->getName()] = (string)$subChild;
-                            }
-                        }
-                    } elseif ($child->getName() === 'ShippingDetails') {
-                        $productArray[$child->getName()] = [];
-                        foreach ($child->ShippingServiceOptions as $shippingOption) {
-                            $shippingArray = [];
-                            foreach ($shippingOption->children() as $option) {
-                                $shippingArray[$option->getName()] = (string)$option;
-                            }
-                            $productArray[$child->getName()][] = $shippingArray;
-                        }
-                    } else {
-                        $productArray[$child->getName()] = (string)$child;
-                    }
-                } else {
-                    $productArray[$child->getName()] = (string)$child;
-                }
-            }
-
-            $resultArray[] = $productArray;
+            $resultArray[] = [
+                'title' => (string)$product->productInformation->title,
+                'description' => (string)$product->productInformation->description->productDescription,
+                'images' => (array)$product->productInformation->pictureURL,
+                'sku' => (string)$product->SKU,
+                'price' => (float)$product->price,
+                'model' => (string)$product->product_model_name,
+                'brand' => (string)$product->product_brand,
+                'stock'  => (int)$product->productInformation->quantity,
+                'condition' => (string)$product->productInformation->conditionInfo->condition,
+                'shipping_details' => json_decode(json_encode($shippingOptions['ShippingServiceOptions']),true),
+                'postal_code' => $postalCode,
+                'category_id' => '177'
+            ];
         }
 
         return $resultArray;
@@ -83,7 +67,7 @@ class FeedService
         return $xml;
     }
 
-    public function getShippingPolicies()
+    private function getShippingPolicies(): string
     {
         return '<ReturnPolicy>
 	      <ReturnsAcceptedOption>ReturnsAccepted</ReturnsAcceptedOption>
@@ -135,7 +119,7 @@ class FeedService
             $sku = $productData['SKU'];
             $product = $products->where('sku', $sku)->first();
             if (!$product) {
-//                app(ProductService::class)->create($productData);
+                app(ProductService::class)->create($productData);
                 $newProducts[] = $productData;
             } else {
                 $changes = $this->findChanges($product, $productData);
