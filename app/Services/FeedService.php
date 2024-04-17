@@ -207,6 +207,10 @@ class FeedService
                 }
                 $xml .= '</PictureDetails>';
             }
+            elseif($key == 'price'){
+                $xml .= '<StartPrice>' . $value . '</StartPrice>';
+                $xml .= '<Currency>EUR</Currency>';
+            }
             elseif($key == 'shipping_details'){
                 $xml = $this->getShippingOptions($xml, $value);
             }
@@ -259,7 +263,7 @@ class FeedService
         $xml .= '<Quantity>' . $stock . '</Quantity>'; // Quantity
         $xml .= '<ConditionID>'.$conditionId.'</ConditionID>';
         $xml .= '<Country>NL</Country>';
-        $xml .= '<Currency>USD</Currency>';
+        $xml .= '<Currency>EUR</Currency>';
         $xml .= '<DispatchTimeMax>3</DispatchTimeMax>';
         $xml .= '<ListingDuration>GTC</ListingDuration>';
         $xml .= '<ListingType>FixedPriceItem</ListingType>';
