@@ -100,83 +100,71 @@ class FeedService
      */
     public function syncFeedWithDB()
     {
-//        $data = file_get_contents($this->feedUrl);
-//        $equal = $this->isEqualToLocal($data);
-//        if ($equal) {
-//            return response(['message' => 'No updates available']);
-//        }
-        $data = file_get_contents('feed.xml');
+        $data = file_get_contents($this->feedUrl);
+        $equal = $this->isEqualToLocal($data);
+        if ($equal) {
+            return response(['message' => 'No updates available']);
+        }
+//        $data = file_get_contents('feed.xml');
         $feedData = $this->getFeedData($data);
 
         $products = app(ProductService::class)->getAll();
 
         $newProducts = array();
+        $updatedProducts = array();
 
-        $listingFeed = null;
-        $revisingFeed = null;
-
-        foreach ($feedData as $productData) {
-            $sku = $productData['SKU'];
+        foreach ($feedData as $productData)
+        {
+            $sku = $productData['sku'];
             $product = $products->where('sku', $sku)->first();
-            if (!$product) {
-                app(ProductService::class)->create($productData);
-                $newProducts[] = $productData;
+            if (!$product || !$product->listing_id) {
+                $product = app(ProductService::class)->create($productData);
+                $listingFeed = $this->generateListItemsFeed($productData);
+                $response = app(ApiService::class)->listItems($listingFeed);
+                $listingId = $this->extractListingId($response);
+                app(ProductService::class)->update($product->id,['listing_id' => $listingId]);
+                $newProducts[] = 'https://sandbox.ebay.com/itm/'.$listingId;
             } else {
                 $changes = $this->findChanges($product, $productData);
                 if(!empty($changes)){
                     app(ProductService::class)->update($product->id,$changes);
                     $revisingFeed = $this->generateReviseItemFeed($product->listing_id, $changes);
+                    $response = app(ApiService::class)->reviseItem($revisingFeed);
+                    $listingId = $this->extractListingId($response);
+                    $updatedProducts[] = 'https://sandbox.ebay.com/itm/'.$listingId;
                 }
             }
         }
-//        dd($newProducts);
-        if (!empty($newProducts)) {
-            $listingFeed = $this->generateListItemsFeed($newProducts);
 
-        }
-        if($revisingFeed){
-            $response = app(ApiService::class)->reviseItem($revisingFeed);
-            dd($response);
-        }
+        return response(['message' => 'Feed synchronized successfully','new_products' => $newProducts, 'updated_products' => $updatedProducts]);
+    }
 
-        if($listingFeed){
-            $response = app(ApiService::class)->listItems($listingFeed);
-            dd($response);
+    private function extractListingId($xmlResponse): string
+    {
+        $xml = simplexml_load_string($xmlResponse);
+        $xml->registerXPathNamespace('ns', 'urn:ebay:apis:eBLBaseComponents');
+        $listingId = $xml->xpath('//ns:ItemID');
+        if(!isset($listingId[0])){
+            return $this->extractDuplicateListingId($xmlResponse);
+        }else{
+            return (string) $listingId[0];
         }
+    }
 
-        return response(['message' => 'Feed synchronized successfully']);
+    private function extractDuplicateListingId($xmlResponse): string
+    {
+        $xml = simplexml_load_string($xmlResponse);
+        $xml->registerXPathNamespace('ns', 'urn:ebay:apis:eBLBaseComponents');
+        $itemId = $xml->xpath('//ns:Errors/ns:ErrorParameters[@ParamID="1"]/ns:Value');
+        return (string) $itemId[0] ?? 0;
     }
 
     private function findChanges($product, $productData): array
     {
         $changes = [];
         foreach ($productData as $key => $value) {
-            if ($key == 'product_brand' && $product->brand !== $value){
-                $changes['brand'] = $key;
-            }
-            elseif ($key == 'product_model_name' && $product->model !== $value){
-                $changes['model'] = $key;
-            }
-            elseif ($key == 'pictureURL' && $product->images !== $value){
-                $changes['images'] = $value;
-            }
-            elseif ($key == 'conditionInfo' && $product->condition !== $value){
-                $changes['condition'] = $value;
-            }
-            elseif ($key == 'ShippingDetails' && $product->shipping_details != $value){
-                $changes['shipping_details'] = $value;
-            }
-            elseif ($key == 'description' && $product->description !== $value){
-                $changes['description'] = $value;
-            }
-            elseif ($key == 'title' && $product->title !== $value){
-                $changes['title'] = $value;
-            }
-            elseif ($key == 'price' && $product->price != $value){
-                $changes['price'] = $value;
-            }
-            elseif ($key == 'stock' && $product->stock != $value){
-                $changes['stock'] = $value;
+            if ($product->{$key} != $value) {
+                $changes[$key] = $value;
             }
         }
         return $changes;
@@ -185,7 +173,8 @@ class FeedService
     public function generateReviseItemFeed($listingId, $changes): string
     {
         $xml = '<?xml version="1.0" encoding="UTF-8"?>';
-        $xml .= '<ReviseItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">';
+        $xml .= '<ReviseFixedPriceItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">';
+        $xml .= '<Item>';
         $xml .= '<ItemID>' . $listingId . '</ItemID>';
         foreach ($changes as $key => $value) {
             if($key == 'condition'){
@@ -226,86 +215,85 @@ class FeedService
             }
             $xml .= '</ItemSpecifics>';
         }
-
-        $xml .= '</ReviseItemRequest>';
+        $xml .= '</Item>';
+        $xml .= '</ReviseFixedPriceItemRequest>';
 
         return $xml;
     }
 
-    public function generateListItemsFeed($productDataArray): string
+    public function generateListItemsFeed($productData): string
     {
         $xml = '<?xml version="1.0" encoding="utf-8"?>';
         $xml .= '<AddFixedPriceItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">';
         $xml .= '<ErrorLanguage>en_US</ErrorLanguage>';
         $xml .= '<WarningLevel>High</WarningLevel>';
-        $productDataArray = [$productDataArray[0]];
-        foreach ($productDataArray as $productData) {
-            $categoryId = '177';
-            $conditionId = \App\Enums\Product::CONDITIONS[strtolower(str_replace(' ', '_', $productData['conditionInfo']))] ?? 1000;
-            $shippingOptions = $productData['ShippingDetails'] ?? array();
-            $stock = 1;
+//        $productDataArray = [$productDataArray[0]];
 
-            $xml .= '<Item>';
-            $xml .= '<Title>' . $productData['title'] . '</Title>';
+        $conditionId = \App\Enums\Product::CONDITIONS[strtolower(str_replace(' ', '_', $productData['condition']))] ?? 1000;
+        $shippingOptions = $productData['shipping_details'] ?? array();
+        $stock = 1;
+
+        $xml .= '<Item>';
+        $xml .= '<Title>' . $productData['title'] . '</Title>';
 //            $xml .= '<Description>' . $productData['description'] . '</Description>';
-            $xml .= '<Description>A Test Description</Description>';
-            $xml .= '<PrimaryCategory>';
-            $xml .= '<CategoryID>'.$categoryId.'</CategoryID>';
-            $xml .= '</PrimaryCategory>';
-            $xml .= '<StartPrice>' . $productData['price'] . '</StartPrice>';
-            $xml .= '<Quantity>' . $stock . '</Quantity>'; // Quantity
-            $xml .= '<ConditionID>'.$conditionId.'</ConditionID>';
-            $xml .= '<Country>US</Country>';
-            $xml .= '<Currency>USD</Currency>';
-            $xml .= '<DispatchTimeMax>3</DispatchTimeMax>';
-            $xml .= '<ListingDuration>GTC</ListingDuration>';
-            $xml .= '<ListingType>FixedPriceItem</ListingType>';
-            $xml .= '<PostalCode>95125</PostalCode>';
+        $xml .= '<Description><![CDATA['.$productData['description'].']]></Description>';
+        $xml .= '<PrimaryCategory>';
+        $xml .= '<CategoryID>'.$productData['category_id'].'</CategoryID>';
+        $xml .= '</PrimaryCategory>';
+        $xml .= '<StartPrice>' . $productData['price'] . '</StartPrice>';
+        $xml .= '<Quantity>' . $stock . '</Quantity>'; // Quantity
+        $xml .= '<ConditionID>'.$conditionId.'</ConditionID>';
+        $xml .= '<Country>NL</Country>';
+        $xml .= '<Currency>USD</Currency>';
+        $xml .= '<DispatchTimeMax>3</DispatchTimeMax>';
+        $xml .= '<ListingDuration>GTC</ListingDuration>';
+        $xml .= '<ListingType>FixedPriceItem</ListingType>';
+        $xml .= '<PostalCode>'.$productData['postal_code'].'</PostalCode>';
 
-            if(!empty($shippingOptions)){
-                $xml = $this->getShippingOptions($xml, $shippingOptions);
-            }
-
-            $xml .= $this->getShippingPolicies();
-
-            $xml .= '<PictureDetails>';
-            foreach ($productData['pictureURL'] as $url) {
-                $xml .= '<PictureURL>' . $url . '</PictureURL>';
-            }
-            $xml .= '</PictureDetails>';
-
-
-            $xml .= '<ItemSpecifics>';
-
-            $xml.= '<NameValueList>';
-            $xml.= '<Name>Brand</Name>';
-            $xml.= '<Value>'.$productData['product_brand'].'</Value>';
-            $xml.= '</NameValueList>';
-
-            $xml.= '<NameValueList>';
-            $xml.= '<Name>Model</Name>';
-            $xml.= '<Value>'.$productData['product_model_name'].'</Value>';
-            $xml.= '</NameValueList>';
-
-            $xml.= '<NameValueList>';
-            $xml.= '<Name>Processor</Name>';
-            $xml.= '<Value>Not specified</Value>';
-            $xml.= '</NameValueList>';
-
-            $xml.= '<NameValueList>';
-            $xml.= '<Name>Processor</Name>';
-            $xml.= '<Value>Not specified</Value>';
-            $xml.= '</NameValueList>';
-
-            $xml.= '<NameValueList>';
-            $xml.= '<Name>Screen Size</Name>';
-            $xml.= '<Value>Not specified</Value>';
-            $xml.= '</NameValueList>';
-
-            $xml .= '</ItemSpecifics>';
-
-            $xml .= '</Item>';
+        if(!empty($shippingOptions)){
+            $xml = $this->getShippingOptions($xml, $shippingOptions);
         }
+
+        $xml .= $this->getShippingPolicies();
+
+        $xml .= '<PictureDetails>';
+        foreach ($productData['images'] as $url) {
+            $xml .= '<PictureURL>' . $url . '</PictureURL>';
+        }
+        $xml .= '</PictureDetails>';
+
+
+        $xml .= '<ItemSpecifics>';
+
+        $xml.= '<NameValueList>';
+        $xml.= '<Name>Brand</Name>';
+        $xml.= '<Value>'.$productData['brand'].'</Value>';
+        $xml.= '</NameValueList>';
+
+        $xml.= '<NameValueList>';
+        $xml.= '<Name>Model</Name>';
+        $xml.= '<Value>'.$productData['model'].'</Value>';
+        $xml.= '</NameValueList>';
+
+        $xml.= '<NameValueList>';
+        $xml.= '<Name>Processor</Name>';
+        $xml.= '<Value>Not specified</Value>';
+        $xml.= '</NameValueList>';
+
+        $xml.= '<NameValueList>';
+        $xml.= '<Name>Processor</Name>';
+        $xml.= '<Value>Not specified</Value>';
+        $xml.= '</NameValueList>';
+
+        $xml.= '<NameValueList>';
+        $xml.= '<Name>Screen Size</Name>';
+        $xml.= '<Value>Not specified</Value>';
+        $xml.= '</NameValueList>';
+
+        $xml .= '</ItemSpecifics>';
+
+        $xml .= '</Item>';
+
 
         $xml .= '</AddFixedPriceItemRequest>';
 

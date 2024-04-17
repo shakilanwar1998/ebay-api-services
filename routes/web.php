@@ -12,6 +12,7 @@ Route::get('/auth',[\App\Http\Controllers\AuthenticationController::class,'handl
 
 
 Route::get('/test',function(){
+//    phpinfo();
     return app(\App\Services\FeedService::class)->syncFeedWithDB();
 });
 

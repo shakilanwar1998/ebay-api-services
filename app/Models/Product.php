@@ -22,7 +22,8 @@ class Product extends Model
         'model',
         'images',
         'condition',
-        'shipping_details'
+        'shipping_details',
+        'postal_code'
     ];
 
     protected $casts = [

@@ -15,17 +15,19 @@ class ProductService
     {
 
         return Product::updateOrCreate([
-            'sku' => $productData['SKU']
+            'sku' => $productData['sku']
         ], [
             'title' => $productData['title'],
             'description' => $productData['description'],
             'price' => $productData['price'],
-            'brand' => $productData['product_brand'],
-            'model' => $productData['product_model_name'],
-            'condition' => $productData['conditionInfo'],
-            'images' => $productData['pictureURL'],
+            'brand' => $productData['brand'],
+            'model' => $productData['model'],
+            'condition' => $productData['condition'],
+            'images' => $productData['images'],
             'stock' => $productData['stock'] ?? 1,
-            'shipping_details' => $productData['ShippingDetails']
+            'shipping_details' => $productData['shipping_details'],
+            'category_id' => $productData['category_id'],
+            'postal_code' => $productData['postal_code']
         ]);
     }
 

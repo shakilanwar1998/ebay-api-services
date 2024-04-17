@@ -29,5 +29,6 @@ enum Product
         'images' => 'PictureDetails',
         'condition' => 'ConditionID',
         'shipping_details' => 'ShippingDetails',
+        'postal_code' => 'PostalCode'
     ];
 }
