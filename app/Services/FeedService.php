@@ -225,7 +225,7 @@ class FeedService
             elseif ($key == 'description'){
                 $xml .= '<Description><![CDATA['.$value.']]></Description>';
             }
-            else{
+            elseif(!in_array($key,['brand','model','specifications'])){
                 $xml .= '<' . \App\Enums\Product::FIELD_MAPPING[$key] . '>' . $value . '</' . \App\Enums\Product::FIELD_MAPPING[$key] . '>';
             }
         }
