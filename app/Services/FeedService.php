@@ -25,6 +25,11 @@ class FeedService
             $postalCode = $shippingOptions['PostalCode'];
             unset($shippingOptions['PostalCode']);
 
+            $specifications = (string)$product->productInformation->specifications;
+            $json_string = str_replace("'", '"', $specifications);
+
+            $specifications = json_decode($json_string,true);
+
             $resultArray[] = [
                 'title' => (string)$product->productInformation->title,
                 'description' => (string)$product->productInformation->description->productDescription,
@@ -37,7 +42,8 @@ class FeedService
                 'condition' => (string)$product->productInformation->conditionInfo->condition,
                 'shipping_details' => json_decode(json_encode($shippingOptions['ShippingServiceOptions']),true),
                 'postal_code' => $postalCode,
-                'category_id' => '177'
+                'category_id' => '177',
+                'specifications' => $specifications
             ];
         }
 
@@ -223,20 +229,30 @@ class FeedService
                 $xml .= '<' . \App\Enums\Product::FIELD_MAPPING[$key] . '>' . $value . '</' . \App\Enums\Product::FIELD_MAPPING[$key] . '>';
             }
         }
-        if(@$changes['brand'] || @$changes['model']){
+        if(@$changes['brand'] || @$changes['model'] || @$changes['specifications']){
             $xml .= '<ItemSpecifics>';
-            if($changes['brand']){
+            if(@$changes['brand']){
                 $xml.= '<NameValueList>';
                 $xml.= '<Name>Merk</Name>';
                 $xml.= '<Value>'.$changes['brand'].'</Value>';
                 $xml.= '</NameValueList>';
             }
-            if($changes['model']){
+            if(@$changes['model']){
                 $xml.= '<NameValueList>';
                 $xml.= '<Name>Model</Name>';
                 $xml.= '<Value>'.$changes['model'].'</Value>';
                 $xml.= '</NameValueList>';
             }
+
+            if(@$changes['specifications']){
+                foreach ($changes['specifications'] ?? array() as $key => $specification) {
+                    $xml.= '<NameValueList>';
+                    $xml.= '<Name>'.$key == "Screen size"? "Schermgrootte":$key.'</Name>';
+                    $xml.= '<Value>'.$specification.'</Value>';
+                    $xml.= '</NameValueList>';
+                }
+            }
+
             $xml .= '</ItemSpecifics>';
         }
         $xml .= '</Item>';
@@ -286,7 +302,6 @@ class FeedService
         }
         $xml .= '</PictureDetails>';
 
-
         $xml .= '<ItemSpecifics>';
 
         $xml.= '<NameValueList>';
@@ -299,20 +314,13 @@ class FeedService
         $xml.= '<Value>'.$productData['model'].'</Value>';
         $xml.= '</NameValueList>';
 
-        $xml.= '<NameValueList>';
-        $xml.= '<Name>Processor</Name>';
-        $xml.= '<Value>Not specified</Value>';
-        $xml.= '</NameValueList>';
+        foreach ($productData['specifications'] ?? array() as $key => $specification) {
+            $xml.= '<NameValueList>';
+            $xml.= '<Name>'.$key == "Screen size"? "Schermgrootte":$key.'</Name>';
+            $xml.= '<Value>'.$specification.'</Value>';
+            $xml.= '</NameValueList>';
+        }
 
-        $xml.= '<NameValueList>';
-        $xml.= '<Name>Processor</Name>';
-        $xml.= '<Value>Not specified</Value>';
-        $xml.= '</NameValueList>';
-
-        $xml.= '<NameValueList>';
-        $xml.= '<Name>Schermgrootte</Name>';
-        $xml.= '<Value>Not specified</Value>';
-        $xml.= '</NameValueList>';
 
         $xml .= '</ItemSpecifics>';
 

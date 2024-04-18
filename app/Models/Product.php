@@ -23,11 +23,13 @@ class Product extends Model
         'images',
         'condition',
         'shipping_details',
-        'postal_code'
+        'postal_code',
+        'specifications'
     ];
 
     protected $casts = [
         'images' => 'array',
-        'shipping_details' => 'array'
+        'shipping_details' => 'array',
+        'specifications' => 'array'
     ];
 }

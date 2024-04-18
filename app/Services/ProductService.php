@@ -27,7 +27,8 @@ class ProductService
             'stock' => $productData['stock'] ?? 1,
             'shipping_details' => $productData['shipping_details'],
             'category_id' => $productData['category_id'],
-            'postal_code' => $productData['postal_code']
+            'postal_code' => $productData['postal_code'],
+            'specifications' => $productData['specifications']
         ]);
     }
 
