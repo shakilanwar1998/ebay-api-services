@@ -84,6 +84,37 @@ class FeedService
         //	      <RefundOption>MoneyBack</RefundOption>
     }
 
+    /**
+     * @param string $xml
+     * @param $productData
+     * @param mixed $specifications
+     * @return string
+     */
+    public function getSpecifications(string $xml, $productData, mixed $specifications): string
+    {
+        $xml .= '<ItemSpecifics>';
+        $xml .= '<NameValueList>';
+        $xml .= '<Name>Merk</Name>';
+        $xml .= '<Value>' . $productData['brand'] . '</Value>';
+        $xml .= '</NameValueList>';
+
+        $xml .= '<NameValueList>';
+        $xml .= '<Name>Model</Name>';
+        $xml .= '<Value>' . $productData['model'] . '</Value>';
+        $xml .= '</NameValueList>';
+
+        foreach ($specifications ?? array() as $key => $specification) {
+            $key = ($key == "Screen size" ? "Schermgrootte" : $key);
+            $xml .= '<NameValueList>';
+            $xml .= '<Name>' . $key . '</Name>';
+            $xml .= '<Value>' . $specification . '</Value>';
+            $xml .= '</NameValueList>';
+        }
+
+        $xml .= '</ItemSpecifics>';
+        return $xml;
+    }
+
     private function isEqualToLocal($fileContent): bool
     {
         $localFilePath = 'feed.xml';
@@ -134,8 +165,8 @@ class FeedService
             } else {
                 $changes = $this->findChanges($product, $productData);
                 if(!empty($changes)){
-                    app(ProductService::class)->update($product->id,$changes);
-                    $revisingFeed = $this->generateReviseItemFeed($product->listing_id, $changes);
+                    $product = app(ProductService::class)->update($product->id,$changes);
+                    $revisingFeed = $this->generateReviseItemFeed($product, $changes);
                     $response = app(ApiService::class)->reviseItem($revisingFeed);
                     $listingId = $this->extractListingId($response);
                     $updatedProducts[] = 'https://sandbox.ebay.com/itm/'.$listingId;
@@ -193,8 +224,9 @@ class FeedService
         return $changes;
     }
 
-    public function generateReviseItemFeed($listingId, $changes): string
+    public function generateReviseItemFeed($product, $changes): string
     {
+        $listingId = $product->listing_id;
         $xml = '<?xml version="1.0" encoding="UTF-8"?>';
         $xml .= '<ReviseFixedPriceItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">';
         $xml .= '<Item>';
@@ -230,30 +262,10 @@ class FeedService
             }
         }
         if(@$changes['brand'] || @$changes['model'] || @$changes['specifications']){
-            $xml .= '<ItemSpecifics>';
-            if(@$changes['brand']){
-                $xml.= '<NameValueList>';
-                $xml.= '<Name>Merk</Name>';
-                $xml.= '<Value>'.$changes['brand'].'</Value>';
-                $xml.= '</NameValueList>';
-            }
-            if(@$changes['model']){
-                $xml.= '<NameValueList>';
-                $xml.= '<Name>Model</Name>';
-                $xml.= '<Value>'.$changes['model'].'</Value>';
-                $xml.= '</NameValueList>';
-            }
-
-            if(@$changes['specifications']){
-                foreach ($changes['specifications'] ?? array() as $key => $specification) {
-                    $xml.= '<NameValueList>';
-                    $xml.= '<Name>'.$key == "Screen size"? "Schermgrootte":$key.'</Name>';
-                    $xml.= '<Value>'.$specification.'</Value>';
-                    $xml.= '</NameValueList>';
-                }
-            }
-
-            $xml .= '</ItemSpecifics>';
+            $specifications = $product->specifications ?? array();
+            $changes['brand'] = $product->brand;
+            $changes['model'] = $product->model;
+            $xml = $this->getSpecifications($xml, $changes, $specifications);
         }
         $xml .= '</Item>';
         $xml .= '</ReviseFixedPriceItemRequest>';
@@ -301,28 +313,9 @@ class FeedService
             $xml .= '<PictureURL>' . $url . '</PictureURL>';
         }
         $xml .= '</PictureDetails>';
+        $specifications = $productData['specifications'] ?? array();
 
-        $xml .= '<ItemSpecifics>';
-
-        $xml.= '<NameValueList>';
-        $xml.= '<Name>Merk</Name>';
-        $xml.= '<Value>'.$productData['brand'].'</Value>';
-        $xml.= '</NameValueList>';
-
-        $xml.= '<NameValueList>';
-        $xml.= '<Name>Model</Name>';
-        $xml.= '<Value>'.$productData['model'].'</Value>';
-        $xml.= '</NameValueList>';
-
-        foreach ($productData['specifications'] ?? array() as $key => $specification) {
-            $xml.= '<NameValueList>';
-            $xml.= '<Name>'.$key == "Screen size"? "Schermgrootte":$key.'</Name>';
-            $xml.= '<Value>'.$specification.'</Value>';
-            $xml.= '</NameValueList>';
-        }
-
-
-        $xml .= '</ItemSpecifics>';
+        $xml = $this->getSpecifications($xml, $productData, $specifications);
 
         $xml .= '</Item>';
 

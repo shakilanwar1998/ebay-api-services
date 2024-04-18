@@ -37,5 +37,6 @@ class ProductService
         $product = Product::find($id);
         $product->fill($data);
         $product->save();
+        return $product;
     }
 }
