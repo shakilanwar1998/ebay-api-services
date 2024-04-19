@@ -39,7 +39,7 @@ class FeedService
                 'model' => (string)$product->product_model_name,
                 'brand' => (string)$product->product_brand,
                 'stock'  => (int)$product->productInformation->quantity,
-                'condition' => (string)$product->productInformation->conditionInfo->condition,
+                'condition' => (int)$product->productInformation->conditionInfo->ConditionID,
                 'shipping_details' => json_decode(json_encode($shippingOptions['ShippingServiceOptions']),true),
                 'postal_code' => $postalCode,
                 'category_id' => '177',
@@ -232,10 +232,7 @@ class FeedService
         $xml .= '<Item>';
         $xml .= '<ItemID>' . $listingId . '</ItemID>';
         foreach ($changes as $key => $value) {
-            if($key == 'condition'){
-                $xml .= '<' . \App\Enums\Product::FIELD_MAPPING[$key] . '>' . \App\Enums\Product::CONDITIONS[strtolower(str_replace(' ','_',$value))] . '</' . \App\Enums\Product::FIELD_MAPPING[$key] . '>';
-            }
-            elseif($key == 'category_id'){
+            if($key == 'category_id'){
                 $xml .= '<PrimaryCategory>';
                 $xml .= '<CategoryID>'.$value.'</CategoryID>';
                 $xml .= '</PrimaryCategory>';
@@ -281,7 +278,6 @@ class FeedService
         $xml .= '<WarningLevel>High</WarningLevel>';
 //        $productDataArray = [$productDataArray[0]];
 
-        $conditionId = \App\Enums\Product::CONDITIONS[strtolower(str_replace(' ', '_', $productData['condition']))] ?? 1000;
         $shippingOptions = $productData['shipping_details'] ?? array();
         $stock = $productData['stock'];
 
@@ -294,7 +290,7 @@ class FeedService
         $xml .= '</PrimaryCategory>';
         $xml .= '<StartPrice>' . $productData['price'] . '</StartPrice>';
         $xml .= '<Quantity>' . $stock . '</Quantity>'; // Quantity
-        $xml .= '<ConditionID>'.$conditionId.'</ConditionID>';
+        $xml .= '<ConditionID>'.$productData['condition'].'</ConditionID>';
         $xml .= '<Country>NL</Country>';
         $xml .= '<Currency>EUR</Currency>';
         $xml .= '<DispatchTimeMax>3</DispatchTimeMax>';
