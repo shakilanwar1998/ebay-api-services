@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Credential;
 use App\Services\FeedService;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Console\Command;
@@ -28,6 +29,10 @@ class FeedSync extends Command
      */
     public function handle()
     {
-        app(FeedService::class)->syncFeedWithDB();
+        $credentials = Credential::where(['environment' => 'production'])->exists();
+        if($credentials){
+            app(FeedService::class)->syncFeedWithDB();
+        }
+
     }
 }
