@@ -168,7 +168,6 @@ class FeedService
                     $product = app(ProductService::class)->update($product->id,$changes);
                     $revisingFeed = $this->generateReviseItemFeed($product, $changes);
                     $response = app(ApiService::class)->reviseItem($revisingFeed);
-                    dd($response);
                     $listingId = $this->extractListingId($response);
                     $updatedProducts[] = 'https://sandbox.ebay.com/itm/'.$listingId;
                 }
