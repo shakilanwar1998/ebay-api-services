@@ -5,5 +5,6 @@ return [
     'client_secret' => env('EBAY_CLIENT_SECRET',''),
     'redirect_uri' => env('EBAY_REDIRECT_URI',''),
     'baseUrl' => env('EBAY_SANDBOX')?'https://api.sandbox.ebay.com/':'https://api.ebay.com/',
-    'feed_url' => env('FEED_URL','')
+    'feed_url' => env('FEED_URL',''),
+    'sandbox' => (bool)env('EBAY_SANDBOX')
 ];

@@ -161,7 +161,7 @@ class FeedService
                 $response = app(ApiService::class)->listItems($listingFeed);
                 $listingId = $this->extractListingId($response);
                 app(ProductService::class)->update($product->id,['listing_id' => $listingId]);
-                $newProducts[] = 'https://sandbox.ebay.com/itm/'.$listingId;
+                $newProducts[] = 'https://ebay.com/itm/'.$listingId;
             } else {
                 $changes = $this->findChanges($product, $productData);
                 if(!empty($changes)){
@@ -169,7 +169,7 @@ class FeedService
                     $revisingFeed = $this->generateReviseItemFeed($product, $changes);
                     $response = app(ApiService::class)->reviseItem($revisingFeed);
                     $listingId = $this->extractListingId($response);
-                    $updatedProducts[] = 'https://sandbox.ebay.com/itm/'.$listingId;
+                    $updatedProducts[] = 'https://ebay.com/itm/'.$listingId;
                 }
             }
         }
@@ -178,7 +178,7 @@ class FeedService
         if(empty($updatedProducts) && empty($newProducts)){
             $allProducts = array();
             foreach ($products as $product) {
-                $allProducts[] = 'https://sandbox.ebay.com/itm/'.$product->listing_id;
+                $allProducts[] = 'https://ebay.com/itm/'.$product->listing_id;
             }
             return response([
                 'message' => 'No updates available',
