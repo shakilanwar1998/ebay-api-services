@@ -156,7 +156,9 @@ class FeedService
             $sku = $productData['sku'];
             $product = $products->where('sku', $sku)->first();
             if (!$product || !$product->listing_id) {
-                $product = app(ProductService::class)->create($productData);
+                if(!$product){
+                    $product = app(ProductService::class)->create($productData);
+                }
                 $listingFeed = $this->generateListItemsFeed($productData);
                 $response = app(ApiService::class)->listItems($listingFeed);
                 $listingId = $this->extractListingId($response);
