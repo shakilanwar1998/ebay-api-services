@@ -9,8 +9,9 @@ class CredentialService
 {
     public function renewTokens($data): void
     {
+        $data['environment'] = config('ebay.sandbox') ? 'sandbox' : 'production';
         $credential = Credential::where([
-            'environment' => config('ebay.sandbox') ? 'sandbox' : 'production'
+            'environment' => $data['environment']
         ])->firstOrNew();
         $credential->fill($data);
         $credential->save();

@@ -28,6 +28,7 @@ class ApiService
      */
     public function getAccessToken($refreshToken): bool|array
     {
+        dd($this->scopes);
         $client = new Client();
         $authUrl = $this->baseUrl.'identity/v1/oauth2/token';
         $response  = $client->post($authUrl,  [
