@@ -166,6 +166,7 @@ class FeedService
                 $newProducts[] = 'https://ebay.com/itm/'.$listingId;
             } else {
                 $changes = $this->findChanges($product, $productData);
+                dd($changes);
                 if(!empty($changes)){
                     $product = app(ProductService::class)->update($product->id,$changes);
                     $revisingFeed = $this->generateReviseItemFeed($product, $changes);
