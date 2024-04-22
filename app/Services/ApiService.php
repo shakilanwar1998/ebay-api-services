@@ -4,6 +4,7 @@ namespace App\Services;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Exception\RequestException;
 
 class ApiService
 {
@@ -13,7 +14,8 @@ class ApiService
 
     protected string $redirectUri;
 
-    protected string $scopes = "https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/sell.marketing.readonly https://api.ebay.com/oauth/api_scope/sell.marketing https://api.ebay.com/oauth/api_scope/sell.inventory.readonly https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.account.readonly https://api.ebay.com/oauth/api_scope/sell.account https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly https://api.ebay.com/oauth/api_scope/sell.fulfillment https://api.ebay.com/oauth/api_scope/sell.analytics.readonly https://api.ebay.com/oauth/api_scope/sell.finances https://api.ebay.com/oauth/api_scope/sell.payment.dispute https://api.ebay.com/oauth/api_scope/commerce.identity.readonly";
+    protected string $scopes = "https://api.ebay.com/oauth/api_scope";
+
 
     public function __construct()
     {
@@ -28,30 +30,43 @@ class ApiService
      */
     public function getAccessToken($refreshToken): bool|array
     {
-        dd($this->scopes);
         $client = new Client();
-        $authUrl = $this->baseUrl.'identity/v1/oauth2/token';
-        $response  = $client->post($authUrl,  [
-            'form_params' => [
-                "refresh_token" => $refreshToken,
-                "grant_type" => "refresh_token",
-                "scope" => $this->scopes,
-            ],
+        $authUrl = $this->baseUrl . 'identity/v1/oauth2/token';
 
-            'headers' => [
-                'Content-Type' => 'application/x-www-form-urlencoded',
-                'Authorization' => 'Basic '.base64_encode("$this->clientId:$this->clientSecret"),
-            ]
-        ]);
-        $response = json_decode($response->getBody()->getContents());
+        try {
+            $response = $client->post($authUrl, [
+                'form_params' => [
+                    "refresh_token" => $refreshToken,
+                    "grant_type" => "refresh_token",
+                    "scope" => $this->scopes,
+                ],
 
-        $accessExpiresAt = now();
-        $accessExpiresAt = $accessExpiresAt->addSeconds($response->expires_in);
+                'headers' => [
+                    'Content-Type' => 'application/x-www-form-urlencoded',
+                    'Authorization' => 'Basic ' . base64_encode("$this->clientId:$this->clientSecret"),
+                ]
+            ]);
+            $response = json_decode($response->getBody()->getContents());
+            $accessExpiresAt = now();
+            $accessExpiresAt = $accessExpiresAt->addSeconds($response->expires_in);
 
-        return $response->access_token ? [
-            'access_token' => $response->access_token,
-            'access_token_valid_till' => $accessExpiresAt
-        ] : false;
+            return $response->access_token ? [
+                'access_token' => $response->access_token,
+                'access_token_valid_till' => $accessExpiresAt
+            ] : false;
+
+        } catch (RequestException $e) {
+            if ($e->hasResponse()) {
+                $response = $e->getResponse();
+                $statusCode = $response->getStatusCode();
+                $body = $response->getBody()->getContents();
+                echo "HTTP Status Code: $statusCode\n";
+                echo "Error Body: $body\n";
+            } else {
+                echo "Error occurred without a response.\n";
+            }
+            return false;
+        }
     }
 
     /**
@@ -60,18 +75,18 @@ class ApiService
     public function getTokensByCode($code): bool|array
     {
         $client = new Client();
-        $authUrl = $this->baseUrl.'identity/v1/oauth2/token';
-        $response  = $client->post($authUrl,  [
-            'form_params'=> [
-                "code"=>$code,
-                "grant_type"=>"authorization_code",
+        $authUrl = $this->baseUrl . 'identity/v1/oauth2/token';
+        $response = $client->post($authUrl, [
+            'form_params' => [
+                "code" => $code,
+                "grant_type" => "authorization_code",
                 "redirect_uri" => $this->redirectUri,
-                "scope"=> $this->scopes,
+                "scope" => $this->scopes,
             ],
 
             'headers' => [
                 'Content-Type' => 'application/x-www-form-urlencoded',
-                'Authorization' => 'Basic '.base64_encode("$this->clientId:$this->clientSecret"),
+                'Authorization' => 'Basic ' . base64_encode("$this->clientId:$this->clientSecret"),
             ]
         ]);
         $response = json_decode($response->getBody()->getContents());
@@ -111,7 +126,7 @@ class ApiService
     protected function makeRequest($callName, $data): string
     {
         $client = new Client();
-        $apiUrl = $this->baseUrl.'ws/api.dll';
+        $apiUrl = $this->baseUrl . 'ws/api.dll';
         $accessToken = app(CredentialService::class)->getAccessToken();
 
         $response = $client->post($apiUrl, [

@@ -166,7 +166,6 @@ class FeedService
                 $newProducts[] = 'https://ebay.com/itm/'.$listingId;
             } else {
                 $changes = $this->findChanges($product, $productData);
-                dd($changes);
                 if(!empty($changes)){
                     $product = app(ProductService::class)->update($product->id,$changes);
                     $revisingFeed = $this->generateReviseItemFeed($product, $changes);
@@ -209,11 +208,16 @@ class FeedService
 
     private function extractDuplicateListingId($xmlResponse): string
     {
-
         $xml = simplexml_load_string($xmlResponse);
         $xml->registerXPathNamespace('ns', 'urn:ebay:apis:eBLBaseComponents');
         $itemId = $xml->xpath('//ns:Errors/ns:ErrorParameters[@ParamID="1"]/ns:Value');
-        return $itemId[0] ?? 0;
+
+        $itemIdValue = $itemId[0] ?? null;
+        if (is_numeric($itemIdValue)) {
+            return (string)$itemIdValue;
+        } else {
+            return '0'; // or any default value you prefer
+        }
     }
 
     private function findChanges($product, $productData): array
