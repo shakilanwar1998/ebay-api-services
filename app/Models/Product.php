@@ -24,12 +24,14 @@ class Product extends Model
         'condition',
         'shipping_details',
         'postal_code',
-        'specifications'
+        'specifications',
+        'exceptions'
     ];
 
     protected $casts = [
         'images' => 'array',
         'shipping_details' => 'array',
-        'specifications' => 'array'
+        'specifications' => 'array',
+        'exceptions' => 'array'
     ];
 }

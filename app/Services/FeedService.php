@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Product;
 use GuzzleHttp\Exception\GuzzleException;
+use SimpleXMLElement;
 
 class FeedService
 {
@@ -161,16 +162,25 @@ class FeedService
                 }
                 $listingFeed = $this->generateListItemsFeed($productData);
                 $response = app(ApiService::class)->listItems($listingFeed);
+
+                $exceptions = $this->extractExceptions($response);
+
                 $listingId = $this->extractListingId($response);
-                app(ProductService::class)->update($product->id,['listing_id' => $listingId]);
+                app(ProductService::class)->update($product->id,['listing_id' => $listingId, 'exceptions' => $exceptions]);
                 $newProducts[] = 'https://ebay.com/itm/'.$listingId;
             } else {
                 $changes = $this->findChanges($product, $productData);
                 if(!empty($changes)){
                     $product = app(ProductService::class)->update($product->id,$changes);
+
                     $revisingFeed = $this->generateReviseItemFeed($product, $changes);
                     $response = app(ApiService::class)->reviseItem($revisingFeed);
+                    $exceptions = $this->extractExceptions($response);
                     $listingId = $this->extractListingId($response);
+
+                    if(!empty($exceptions) && $product->exceptions != $exceptions){
+                        app(ProductService::class)->update($product->id,['exceptions' => $exceptions]);
+                    }
                     $updatedProducts[] = 'https://ebay.com/itm/'.$listingId;
                 }
             }
@@ -193,6 +203,31 @@ class FeedService
             'updated_products' => $updatedProducts
         ]);
     }
+
+    private function extractExceptions($response): array
+    {
+        $errors = [];
+        $warnings = [];
+        try {
+            $xml = new SimpleXMLElement($response);
+            $xml->registerXPathNamespace('e', 'urn:ebay:apis:eBLBaseComponents');
+
+            foreach ($xml->xpath('//e:Errors') as $error) {
+                $longMessage = (string)$error->LongMessage;
+
+                if ($error->SeverityCode == 'Error') {
+                    $errors[] = $longMessage;
+                } elseif ($error->SeverityCode == 'Warning') {
+                    $warnings[] = $longMessage;
+                }
+            }
+        }catch (\Exception $exception){
+
+        }
+
+        return ['errors' => $errors, 'warnings' => $warnings];
+    }
+
 
     private function extractListingId($xmlResponse): string
     {
