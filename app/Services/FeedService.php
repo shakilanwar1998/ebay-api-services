@@ -199,6 +199,7 @@ class FeedService
         $xml = simplexml_load_string($xmlResponse);
         $xml->registerXPathNamespace('ns', 'urn:ebay:apis:eBLBaseComponents');
         $listingId = $xml->xpath('//ns:ItemID');
+
         if(!isset($listingId[0])){
             return $this->extractDuplicateListingId($xmlResponse);
         }else{
@@ -206,18 +207,16 @@ class FeedService
         }
     }
 
-    private function extractDuplicateListingId($xmlResponse): string
+    private function extractDuplicateListingId($xmlResponse): float|int|string
     {
         $xml = simplexml_load_string($xmlResponse);
         $xml->registerXPathNamespace('ns', 'urn:ebay:apis:eBLBaseComponents');
-        $itemId = $xml->xpath('//ns:Errors/ns:ErrorParameters[@ParamID="1"]/ns:Value');
-
-        $itemIdValue = $itemId[0] ?? null;
-        if (is_numeric($itemIdValue)) {
-            return (string)$itemIdValue;
-        } else {
-            return '0'; // or any default value you prefer
+        $itemId = $xml->xpath('//ns:Errors/ns:ShortMessage[contains(., "Duplicate Listing")]/following-sibling::ns:ErrorParameters[@ParamID="1"]/ns:Value');
+        if(is_array($itemId)){
+            $itemId = $itemId[0] ?? null;
         }
+        $itemIdValue = (string)$itemId;
+        return is_numeric($itemIdValue) ? $itemIdValue : 0;
     }
 
     private function findChanges($product, $productData): array

@@ -11,7 +11,11 @@ Route::get('/',function(){
 Route::get('/auth',[\App\Http\Controllers\AuthenticationController::class,'handleRedirect']);
 
 
-Route::get('/test',function(){
+Route::get('/update',function(){
     return app(\App\Services\FeedService::class)->syncFeedWithDB();
+});
+
+Route::get('/list',function(){
+    return app(\App\Services\ProductService::class)->getItemIds();
 });
 

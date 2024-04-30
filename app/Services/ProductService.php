@@ -39,4 +39,20 @@ class ProductService
         $product->save();
         return $product;
     }
+
+    public function getItemIds()
+    {
+        $results = Product::select(['listing_id','sku','title'])->get()->map(function ($result){
+            $data = [
+                'title' => $result->title,
+                'sku' => $result->sku,
+                'ebay_item_id' => (int)$result->listing_id == 0? 'N/A':(int)$result->listing_id,
+            ];
+            if($result->listing_id){
+                $data['product_url'] = 'https://ebay.com/itm/'.$result->listing_id;
+            }
+            return $data;
+        });
+        return response($results);
+    }
 }
