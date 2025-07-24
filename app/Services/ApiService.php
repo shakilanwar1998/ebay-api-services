@@ -14,7 +14,7 @@ class ApiService
 
     protected string $redirectUri;
 
-    protected string $scopes = "https://api.ebay.com/oauth/api_scope";
+    protected string $scopes = "https://api.ebay.com/oauth/api_scope/sell.account https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.fulfillment";
 
 
     public function __construct()
@@ -39,6 +39,7 @@ class ApiService
                     "refresh_token" => $refreshToken,
                     "grant_type" => "refresh_token",
                     "scope" => $this->scopes,
+                    "redirect_uri" => $this->redirectUri,
                 ],
 
                 'headers' => [

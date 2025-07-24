@@ -256,13 +256,9 @@ class FeedService
 
     private function findChanges($product, $productData): array
     {
-        $changes = [];
-        foreach ($productData as $key => $value) {
-            if ($product->{$key} != $value) {
-                $changes[$key] = $value;
-            }
-        }
-        return $changes;
+        return array_filter($productData, function ($value, $key) use ($product) {
+            return $product->{$key} != $value;
+        }, ARRAY_FILTER_USE_BOTH);
     }
 
     public function generateReviseItemFeed($product, $changes): string
