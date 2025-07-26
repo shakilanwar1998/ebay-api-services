@@ -9,29 +9,29 @@ class Product extends Model
 {
     use HasFactory;
 
+    public $timestamps = false;
     protected $fillable = [
-        'sku',
-        'listing_id',
         'title',
         'description',
-        'category_id',
-        'local_category_name',
-        'price',
-        'stock',
+        'primary_category',
         'brand',
         'model',
         'images',
-        'condition',
-        'shipping_details',
-        'postal_code',
-        'specifications',
-        'exceptions'
     ];
 
     protected $casts = [
         'images' => 'array',
-        'shipping_details' => 'array',
-        'specifications' => 'array',
-        'exceptions' => 'array'
     ];
+
+    public function productStoreListings()
+    {
+        return $this->hasMany(ProductStoreListing::class);
+    }
+
+    public function stores()
+    {
+        return $this->belongsToMany(Credential::class, 'product_store_listings', 'product_id', 'store_id')
+            ->withPivot('ebay_listing_id')
+            ->withTimestamps();
+    }
 }

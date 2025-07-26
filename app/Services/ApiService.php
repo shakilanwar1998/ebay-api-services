@@ -5,6 +5,7 @@ namespace App\Services;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\RequestException;
+use Illuminate\Support\Facades\Session;
 
 class ApiService
 {
@@ -21,8 +22,11 @@ class ApiService
     {
         $this->clientId = config('ebay.client_id');
         $this->clientSecret = config('ebay.client_secret');
-        $this->baseUrl = config('ebay.baseUrl');
         $this->redirectUri = config('ebay.redirect_uri');
+        $env = Session::get('ebay_env', 'production');
+        $this->baseUrl = $env === 'sandbox'
+            ? 'https://api.sandbox.ebay.com/'
+            : 'https://api.ebay.com/';
     }
 
     /**
@@ -119,6 +123,26 @@ class ApiService
     public function reviseItem($data): string
     {
         return $this->makeRequest('ReviseFixedPriceItem', $data);
+    }
+
+    /**
+     * Fetch the eBay store name using the Sell Account API.
+     */
+    public function getStoreName($accessToken): ?string
+    {
+        $client = new \GuzzleHttp\Client();
+        try {
+            $response = $client->get('https://api.ebay.com/sell/account/v1/store', [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $accessToken,
+                    'Accept' => 'application/json',
+                ]
+            ]);
+            $data = json_decode($response->getBody(), true);
+            return $data['storeName'] ?? null;
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 
     /**

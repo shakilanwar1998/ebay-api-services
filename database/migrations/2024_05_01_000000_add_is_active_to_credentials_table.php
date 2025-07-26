@@ -11,12 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('credentials', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
-            $table->string('refresh_token')->nullable();
-            $table->text('access_token')->nullable();
-            $table->text('app_token')->nullable();
+        Schema::table('credentials', function (Blueprint $table) {
             $table->boolean('is_active')->default(false);
         });
     }
@@ -26,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('credentials');
+        Schema::table('credentials', function (Blueprint $table) {
+            $table->dropColumn('is_active');
+        });
     }
-};
+}; 

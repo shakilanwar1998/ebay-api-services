@@ -4,12 +4,13 @@ namespace App\Services;
 
 use App\Models\Credential;
 use GuzzleHttp\Exception\GuzzleException;
+use Illuminate\Support\Facades\Session;
 
 class CredentialService
 {
     public function renewTokens($data): void
     {
-        $data['environment'] = config('ebay.sandbox') ? 'sandbox' : 'production';
+        $data['environment'] = Session::get('ebay_env', 'production');
         $credential = Credential::where([
             'environment' => $data['environment']
         ])->firstOrNew();
@@ -22,8 +23,9 @@ class CredentialService
      */
     public function getAccessToken()
     {
+        $env = Session::get('ebay_env', 'production');
         $credentials = Credential::where([
-            'environment' => config('ebay.sandbox') ? 'sandbox' : 'production'
+            'environment' => $env
         ])->first();
 
         $accessToken = $credentials->access_token;
@@ -33,5 +35,18 @@ class CredentialService
             app(CredentialService::class)->renewTokens($tokens);
         }
         return $accessToken;
+    }
+
+    public function createCredential($data): Credential
+    {
+        $data['environment'] = Session::get('ebay_env', 'production');
+        $credential = new Credential($data);
+        $credential->save();
+        return $credential;
+    }
+
+    public function setActiveStore($id): void
+    {
+        Credential::setActiveStore($id);
     }
 }
