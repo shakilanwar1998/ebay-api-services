@@ -17,10 +17,13 @@ class Product extends Model
         'brand',
         'model',
         'images',
+        'category_id',
+        'aspects',
     ];
 
     protected $casts = [
         'images' => 'array',
+        'aspects' => 'array',
     ];
 
     public function productStoreListings()
@@ -33,5 +36,10 @@ class Product extends Model
         return $this->belongsToMany(Credential::class, 'product_store_listings', 'product_id', 'store_id')
             ->withPivot('ebay_listing_id')
             ->withTimestamps();
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
     }
 }

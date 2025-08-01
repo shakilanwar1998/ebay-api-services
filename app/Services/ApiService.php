@@ -110,6 +110,82 @@ class ApiService
     }
 
     /**
+     * Get APP access token for eBay Taxonomy API and cache it
+     * @throws GuzzleException
+     */
+    public function getAppAccessToken(): string
+    {
+        // Check if we have a cached token
+        $cachedToken = \Cache::get('ebay_app_token');
+        if ($cachedToken) {
+            return $cachedToken;
+        }
+
+        $client = new Client();
+        $baseUrl = $this->getBaseUrlForActiveStore();
+        $authUrl = $baseUrl . 'identity/v1/oauth2/token';
+
+        try {
+            $response = $client->post($authUrl, [
+                'form_params' => [
+                    "grant_type" => "client_credentials",
+                    "scope" => "https://api.ebay.com/oauth/api_scope",
+                ],
+
+                'headers' => [
+                    'Content-Type' => 'application/x-www-form-urlencoded',
+                    'Authorization' => 'Basic ' . base64_encode("$this->clientId:$this->clientSecret"),
+                ]
+            ]);
+
+            $responseData = json_decode($response->getBody()->getContents());
+
+            if ($responseData->access_token) {
+                // Cache the token for 1 hour (or less if token expires sooner)
+                $expiresIn = min($responseData->expires_in, 3600); // Cache for max 1 hour
+                \Cache::put('ebay_app_token', $responseData->access_token, $expiresIn);
+
+                return $responseData->access_token;
+            }
+
+            throw new \Exception('Failed to get APP access token');
+
+        } catch (RequestException $e) {
+            if ($e->hasResponse()) {
+                $response = $e->getResponse();
+                $statusCode = $response->getStatusCode();
+                $body = $response->getBody()->getContents();
+                \Log::error("eBay APP Token Error - Status: $statusCode, Body: $body");
+            } else {
+                \Log::error("eBay APP Token Error - No response");
+            }
+            throw new \Exception('Failed to get APP access token: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get base URL for the active store's environment
+     */
+    private function getBaseUrlForActiveStore(): string
+    {
+        // Get the active credential's environment
+        $credential = \App\Models\Credential::where('is_active', true)->first();
+
+        if (!$credential) {
+            // Fallback to session environment or default to production
+            $env = Session::get('ebay_env', 'production');
+            return $env === 'sandbox'
+                ? 'https://api.sandbox.ebay.com/'
+                : 'https://api.ebay.com/';
+        }
+
+        // Return appropriate base URL based on environment
+        return $credential->environment === 'sandbox'
+            ? 'https://api.sandbox.ebay.com/'
+            : 'https://api.ebay.com/';
+    }
+
+    /**
      * @throws GuzzleException
      */
     public function listItems($data): string
